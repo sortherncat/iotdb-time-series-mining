@@ -1265,3 +1265,176 @@ For the report, the comparison can be summarized as:
 ```text
 Method A detects more local transition points, while Method B detects fewer but stronger statistical distribution changes. The two methods agree around several major boundaries, such as 3836, 8191, 10866, and 16290, suggesting that these positions are likely to be significant operating-condition transition points.
 ```
+
+## 2026-09-01 - Task 3 Segment Feature Extraction
+
+### Objective
+
+Extract fixed-length feature vectors from each high-dimensional time series segment.
+
+The feature matrix will be used by the later clustering task to identify different operating conditions.
+
+### Implementation Files
+
+Added:
+
+```text
+src/feature_extractor.py
+feature_extraction.py
+```
+
+`src/feature_extractor.py` contains the reusable feature extraction logic.
+
+`feature_extraction.py` is the command line entry for extracting feature matrices from saved segmentation results.
+
+### Input
+
+The module uses:
+
+```text
+data/raw/ETTh1.csv
+```
+
+and segmentation result files:
+
+```text
+outputs/segmentation/method_a_ruptures.json
+outputs/segmentation/method_b_window_stat.json
+```
+
+### Feature Categories
+
+The implementation covers four required feature categories.
+
+Statistical features:
+
+```text
+mean
+standard deviation
+skewness
+kurtosis
+25% quantile
+50% quantile
+75% quantile
+```
+
+Time-domain shape features:
+
+```text
+RMS
+crest factor
+waveform factor
+zero-crossing rate
+```
+
+Trend features:
+
+```text
+linear fitting slope
+mean of first-order difference
+```
+
+Correlation features:
+
+```text
+upper-triangular coefficients of the inter-channel correlation matrix
+```
+
+### Feature Dimension
+
+For each of the 7 ETTh1 sensor variables, the module extracts 13 single-channel features:
+
+```text
+7 variables * 13 features = 91 features
+```
+
+For inter-channel correlation, the upper triangular part of the 7 by 7 correlation matrix contains:
+
+```text
+7 * 6 / 2 = 21 features
+```
+
+Therefore, each segment has:
+
+```text
+91 + 21 = 112 features
+```
+
+The saved CSV also includes three metadata columns:
+
+```text
+segment_start
+segment_end
+segment_length
+```
+
+So the final CSV column count is:
+
+```text
+112 + 3 = 115 columns
+```
+
+### Standardization
+
+The feature matrix is standardized with:
+
+```python
+sklearn.preprocessing.StandardScaler
+```
+
+The command line also supports:
+
+```text
+--scaler minmax
+```
+
+for MinMax scaling.
+
+### Command Line Usage
+
+Extract features for both Method A and Method B:
+
+```bash
+python feature_extraction.py \
+  --input data/raw/ETTh1.csv \
+  --scaler standard
+```
+
+Default outputs:
+
+```text
+outputs/features/ruptures_pelt_features_raw.csv
+outputs/features/ruptures_pelt_features_scaled.csv
+outputs/features/ruptures_pelt_feature_metadata.json
+outputs/features/window_stat_distance_features_raw.csv
+outputs/features/window_stat_distance_features_scaled.csv
+outputs/features/window_stat_distance_feature_metadata.json
+```
+
+### Verification Result
+
+The command was executed successfully.
+
+Method A feature matrix:
+
+```text
+method: ruptures_pelt
+segments: 39
+features: 112
+raw shape: 39 x 115
+scaled shape: 39 x 115
+NaN count: 0
+```
+
+Method B feature matrix:
+
+```text
+method: window_stat_distance
+segments: 33
+features: 112
+raw shape: 33 x 115
+scaled shape: 33 x 115
+NaN count: 0
+```
+
+This completes Task 3 feature extraction.

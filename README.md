@@ -48,9 +48,11 @@ The planned code structure is:
 iotdb-time-series-mining/
 ├── data_loader.py          # IoTDB data import, query, and DataFrame conversion
 ├── segmentation.py         # Change point detection and time series segmentation
+├── feature_extraction.py   # Segment-level feature extraction CLI
 ├── src/                    # Reusable algorithm modules
 │   └── ruptures_segmenter.py
-├── feature_extraction.py   # Segment-level feature extraction
+│   └── window_stat_segmenter.py
+│   └── feature_extractor.py
 ├── clustering.py           # Clustering, model comparison, and condition labeling
 ├── visualization.py        # Figures for segmentation, clustering, and timelines
 ├── main.py                 # Main pipeline orchestration
@@ -176,7 +178,7 @@ The required visualizations include:
 - [x] Time range query and DataFrame conversion.
 - [x] Segmentation method A implementation.
 - [x] Segmentation method B implementation.
-- [ ] Feature extraction implementation.
+- [x] Feature extraction implementation.
 - [ ] Clustering implementation.
 - [ ] Visualization implementation.
 - [ ] Experimental report.
@@ -302,3 +304,35 @@ outputs/segmentation/method_b_window_stat.json
 ```
 
 The output JSON contains the detected `change_points`, final `segments`, and the full sliding-window score curve.
+
+## Segment Feature Extraction
+
+Task 3 extracts segment-level feature vectors from each segmentation result. The implementation covers four feature categories:
+
+```text
+statistical features: mean, std, skewness, kurtosis, quantiles
+time-domain shape features: zero-crossing rate, RMS, crest factor, waveform factor
+correlation features: upper-triangular inter-channel correlation coefficients
+trend features: linear slope, mean difference
+```
+
+Run feature extraction for both Method A and Method B segmentation results:
+
+```bash
+python feature_extraction.py \
+  --input data/raw/ETTh1.csv \
+  --scaler standard
+```
+
+Default outputs:
+
+```text
+outputs/features/ruptures_pelt_features_raw.csv
+outputs/features/ruptures_pelt_features_scaled.csv
+outputs/features/ruptures_pelt_feature_metadata.json
+outputs/features/window_stat_distance_features_raw.csv
+outputs/features/window_stat_distance_features_scaled.csv
+outputs/features/window_stat_distance_feature_metadata.json
+```
+
+Each segment has 112 extracted features. The saved CSV files also include `segment_start`, `segment_end`, and `segment_length` as metadata columns.

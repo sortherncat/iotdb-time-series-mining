@@ -121,12 +121,17 @@ function App() {
       .map((point) => data.timeseries[Math.floor(point / Math.max(1, data.metadata.row_count / data.timeseries.length))])
       .filter(Boolean)
       .map((row) => ({ xAxis: row.datetime }));
-    const markAreas = methodSegments.slice(0, 24).map((segment, index) => {
+    const markAreas = methodSegments.map((segment, index) => {
       const scale = data.metadata.row_count / data.timeseries.length;
       const start = data.timeseries[Math.min(Math.floor(segment[0] / scale), data.timeseries.length - 1)];
       const end = data.timeseries[Math.min(Math.floor(segment[1] / scale), data.timeseries.length - 1)];
+      const intervalName = `${start.datetime} - ${end.datetime}`;
       return [
-        { xAxis: start.datetime, itemStyle: { color: index % 2 ? "rgba(252,213,53,0.05)" : "rgba(0,102,204,0.05)" } },
+        {
+          name: intervalName,
+          xAxis: start.datetime,
+          itemStyle: { color: index % 2 ? "rgba(252,213,53,0.05)" : "rgba(0,102,204,0.05)" },
+        },
         { xAxis: end.datetime },
       ];
     });
@@ -150,18 +155,43 @@ function App() {
         },
       },
       yAxis: { type: "value", scale: true, axisLabel: { color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" } },
-      series: visibleSensors.map((sensor) => ({
+      series: visibleSensors.map((sensor, index) => ({
         name: sensor,
         type: "line",
         showSymbol: false,
         smooth: true,
         data: data.timeseries.map((row) => [row.datetime, row[sensor]]),
-        markLine: {
-          symbol: "none",
-          lineStyle: { type: "dashed", color: mode === "light" ? "#0066cc" : "#fcd535", opacity: 0.55 },
-          data: markLines,
-        },
-        markArea: { silent: true, data: markAreas },
+        ...(index === 0
+          ? {
+              markLine: {
+                symbol: "none",
+                label: { show: false },
+                emphasis: { label: { show: false } },
+                lineStyle: { type: "dashed", color: mode === "light" ? "#0066cc" : "#fcd535", opacity: 0.55 },
+                data: markLines,
+              },
+              markArea: {
+                silent: false,
+                label: { show: false },
+                emphasis: {
+                  label: {
+                    show: true,
+                    position: "insideTop",
+                    distance: -34,
+                    color: chartTheme === "dark" ? "#eaecef" : "#1d1d1f",
+                    backgroundColor: chartTheme === "dark" ? "rgba(24,26,32,0.94)" : "rgba(255,255,255,0.95)",
+                    borderColor: chartTheme === "dark" ? "#2b3139" : "#e0e0e0",
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    padding: [6, 10],
+                    formatter: (params: any) => params.name,
+                  },
+                },
+                tooltip: { show: false },
+                data: markAreas,
+              },
+            }
+          : {}),
       })),
     };
   }, [data, method, visibleSensors, mode, colors, chartTheme]);

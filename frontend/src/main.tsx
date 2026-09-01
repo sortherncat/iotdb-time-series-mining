@@ -79,6 +79,15 @@ function Chart({ option, className }: { option: echarts.EChartsOption; className
   return <div ref={ref} className={className ?? "chart"} />;
 }
 
+function formatTimeTick(value: number | string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  return `${month}-${day}\n${hour}:00`;
+}
+
 function App() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [mode, setMode] = useState<DesignMode>("dark");
@@ -108,7 +117,6 @@ function App() {
   const timeSeriesOption = useMemo(() => {
     if (!data) return {};
     const methodSegments = data.segments[method].segments;
-    const x = data.timeseries.map((row) => row.datetime);
     const markLines = data.segments[method].change_points
       .map((point) => data.timeseries[Math.floor(point / Math.max(1, data.metadata.row_count / data.timeseries.length))])
       .filter(Boolean)
@@ -127,15 +135,27 @@ function App() {
       color: colors,
       tooltip: { trigger: "axis" },
       legend: { top: 0, textStyle: { color: chartTheme === "dark" ? "#eaecef" : "#1d1d1f" } },
-      grid: { left: 44, right: 24, top: 48, bottom: 42 },
-      xAxis: { type: "category", data: x, axisLabel: { color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" } },
+      dataZoom: [
+        { type: "inside", throttle: 60 },
+        { type: "slider", height: 18, bottom: 8 },
+      ],
+      grid: { left: 44, right: 24, top: 52, bottom: 72 },
+      xAxis: {
+        type: "time",
+        axisLabel: {
+          color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a",
+          formatter: formatTimeTick,
+          hideOverlap: true,
+          margin: 14,
+        },
+      },
       yAxis: { type: "value", scale: true, axisLabel: { color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" } },
       series: visibleSensors.map((sensor) => ({
         name: sensor,
         type: "line",
         showSymbol: false,
         smooth: true,
-        data: data.timeseries.map((row) => row[sensor]),
+        data: data.timeseries.map((row) => [row.datetime, row[sensor]]),
         markLine: {
           symbol: "none",
           lineStyle: { type: "dashed", color: mode === "light" ? "#0066cc" : "#fcd535", opacity: 0.55 },
@@ -178,23 +198,37 @@ function App() {
   const representativeOption = useMemo(() => {
     if (!cluster) return {};
     const series = Object.entries(cluster.representatives).flatMap(([condition, reps], conditionIndex) =>
-      reps.map((rep) => ({
-        name: `${condition} · S${rep.segment_id}`,
-        type: "line",
-        showSymbol: false,
-        smooth: true,
-        lineStyle: { opacity: 0.75, width: 2 },
-        itemStyle: { color: colors[conditionIndex % colors.length] },
-        data: rep.values.map((row, index) => [index, row[activeSensor]]),
-      })),
+      reps
+        .map((rep) => ({
+          name: `${condition} · S${rep.segment_id}`,
+          type: "line",
+          showSymbol: false,
+          smooth: true,
+          lineStyle: { opacity: 0.75, width: 2 },
+          itemStyle: { color: colors[conditionIndex % colors.length] },
+          data: rep.values
+            .map((row, index) => [index, Number(row[activeSensor])])
+            .filter((point) => Number.isFinite(point[1])),
+        }))
+        .filter((item) => item.data.length > 0),
     );
     return {
       backgroundColor: "transparent",
       tooltip: { trigger: "axis" },
       grid: { left: 44, right: 24, top: 30, bottom: 42 },
-    xAxis: { type: "value", name: "相对步长", axisLabel: { color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" } },
+      xAxis: { type: "value", name: "相对步长", axisLabel: { color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" } },
       yAxis: { type: "value", scale: true, name: activeSensor, axisLabel: { color: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" } },
       series,
+      graphic: series.length
+        ? []
+        : [
+            {
+              type: "text",
+              left: "center",
+              top: "middle",
+              style: { text: "当前变量没有可展示的代表片段数据", fill: chartTheme === "dark" ? "#929aa5" : "#7a7a7a" },
+            },
+          ],
     };
   }, [cluster, activeSensor, colors, chartTheme]);
 
@@ -261,48 +295,6 @@ function App() {
       </section>
 
       <section className="workspace">
-        <aside className="controls">
-          <Control label="主题风格">
-            <select value={mode} onChange={(e) => setMode(e.target.value as DesignMode)}>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </Control>
-          <Control label="分段方法">
-            <select value={method} onChange={(e) => setMethod(e.target.value as SegmentMethod)}>
-              <option value="ruptures_pelt">{methodLabels.ruptures_pelt}</option>
-              <option value="window_stat_distance">{methodLabels.window_stat_distance}</option>
-            </select>
-          </Control>
-          <Control label="聚类算法">
-            <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value as Algorithm)}>
-              <option value="kmeans">K-Means</option>
-              <option value="gmm">GMM</option>
-            </select>
-          </Control>
-          <Control label="代表片段变量">
-            <select value={activeSensor} onChange={(e) => setActiveSensor(e.target.value)}>
-              {sensors.map((sensor) => <option key={sensor}>{sensor}</option>)}
-            </select>
-          </Control>
-          <div className="sensor-list">
-            {sensors.map((sensor) => (
-              <label key={sensor}>
-                <input
-                  type="checkbox"
-                  checked={visibleSensors.includes(sensor)}
-                  onChange={() =>
-                    setVisibleSensors((current) =>
-                      current.includes(sensor) ? current.filter((item) => item !== sensor) : [...current, sensor],
-                    )
-                  }
-                />
-                {sensor}
-              </label>
-            ))}
-          </div>
-        </aside>
-
         <section className="panel">
           <div className="tabs">
             {[
@@ -316,10 +308,97 @@ function App() {
               </button>
             ))}
           </div>
-          {tab === "series" && <Chart option={timeSeriesOption} className="chart tall" />}
-          {tab === "scatter" && <Chart option={scatterOption} className="chart tall" />}
-          {tab === "representatives" && <Chart option={representativeOption} className="chart tall" />}
-          {tab === "timeline" && <Chart option={timelineOption} className="chart timeline" />}
+          {tab === "series" && (
+            <>
+              <PanelToolbar>
+                <Control label="分段方法">
+                  <select value={method} onChange={(e) => setMethod(e.target.value as SegmentMethod)}>
+                    <option value="ruptures_pelt">{methodLabels.ruptures_pelt}</option>
+                    <option value="window_stat_distance">{methodLabels.window_stat_distance}</option>
+                  </select>
+                </Control>
+                <div className="sensor-list inline">
+                  {sensors.map((sensor) => (
+                    <label key={sensor}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSensors.includes(sensor)}
+                        onChange={() =>
+                          setVisibleSensors((current) =>
+                            current.includes(sensor) ? current.filter((item) => item !== sensor) : [...current, sensor],
+                          )
+                        }
+                      />
+                      {sensor}
+                    </label>
+                  ))}
+                </div>
+              </PanelToolbar>
+              <Chart option={timeSeriesOption} className="chart tall" />
+            </>
+          )}
+          {tab === "scatter" && (
+            <>
+              <PanelToolbar>
+                <Control label="分段方法">
+                  <select value={method} onChange={(e) => setMethod(e.target.value as SegmentMethod)}>
+                    <option value="ruptures_pelt">{methodLabels.ruptures_pelt}</option>
+                    <option value="window_stat_distance">{methodLabels.window_stat_distance}</option>
+                  </select>
+                </Control>
+                <Control label="聚类算法">
+                  <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value as Algorithm)}>
+                    <option value="kmeans">K-Means</option>
+                    <option value="gmm">GMM</option>
+                  </select>
+                </Control>
+              </PanelToolbar>
+              <Chart option={scatterOption} className="chart tall" />
+            </>
+          )}
+          {tab === "representatives" && (
+            <>
+              <PanelToolbar>
+                <Control label="分段方法">
+                  <select value={method} onChange={(e) => setMethod(e.target.value as SegmentMethod)}>
+                    <option value="ruptures_pelt">{methodLabels.ruptures_pelt}</option>
+                    <option value="window_stat_distance">{methodLabels.window_stat_distance}</option>
+                  </select>
+                </Control>
+                <Control label="聚类算法">
+                  <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value as Algorithm)}>
+                    <option value="kmeans">K-Means</option>
+                    <option value="gmm">GMM</option>
+                  </select>
+                </Control>
+                <Control label="代表片段变量">
+                  <select value={activeSensor} onChange={(e) => setActiveSensor(e.target.value)}>
+                    {sensors.map((sensor) => <option key={sensor}>{sensor}</option>)}
+                  </select>
+                </Control>
+              </PanelToolbar>
+              <Chart option={representativeOption} className="chart tall" />
+            </>
+          )}
+          {tab === "timeline" && (
+            <>
+              <PanelToolbar>
+                <Control label="分段方法">
+                  <select value={method} onChange={(e) => setMethod(e.target.value as SegmentMethod)}>
+                    <option value="ruptures_pelt">{methodLabels.ruptures_pelt}</option>
+                    <option value="window_stat_distance">{methodLabels.window_stat_distance}</option>
+                  </select>
+                </Control>
+                <Control label="聚类算法">
+                  <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value as Algorithm)}>
+                    <option value="kmeans">K-Means</option>
+                    <option value="gmm">GMM</option>
+                  </select>
+                </Control>
+              </PanelToolbar>
+              <Chart option={timelineOption} className="chart timeline" />
+            </>
+          )}
           <table className="summary">
             <thead>
               <tr>
@@ -342,6 +421,7 @@ function App() {
           </table>
         </section>
       </section>
+      <FeatureNotes />
     </main>
   );
 }
@@ -362,6 +442,33 @@ function Control({ label, children }: { label: string; children: React.ReactNode
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+function PanelToolbar({ children }: { children: React.ReactNode }) {
+  return <div className="panel-toolbar">{children}</div>;
+}
+
+function FeatureNotes() {
+  const notes = [
+    ["统计特征", "均值、标准差、偏度、峰度和分位数用于描述每个分段内各传感器的整体水平、离散程度和分布形态。"],
+    ["时域形状", "RMS、峰值因子、波形因子和过零率刻画片段波动强度、尖峰程度以及围绕均值上下切换的频繁程度。"],
+    ["相关性特征", "维度间相关系数矩阵的上三角元素表示不同传感器变量之间的同步关系和耦合变化。"],
+    ["趋势特征", "线性拟合斜率和一阶差分均值反映片段内部的上升、下降或平稳趋势。"],
+    ["标准化特征", "所有分段特征经过 StandardScaler 处理，使不同量纲的特征可以公平参与 PCA 降维和聚类。"],
+  ];
+  return (
+    <section className="feature-notes">
+      <h2>特征量说明</h2>
+      <div className="note-grid">
+        {notes.map(([title, body]) => (
+          <article key={title}>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

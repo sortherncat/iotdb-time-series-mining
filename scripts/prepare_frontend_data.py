@@ -151,7 +151,7 @@ def select_representative_segments(
                     "start_time": point["start_time"],
                     "end_time": point["end_time"],
                     "values": segment.iloc[::stride][
-                        ["datetime", "oil_temperature", "high_useful_load"]
+                        ["datetime", *DISPLAY_COLUMNS.values()]
                     ].to_dict(orient="records"),
                 }
             )

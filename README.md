@@ -1,11 +1,99 @@
 # IoTDB Time Series Mining
 
+中文文档: [README.zh-CN.md](README.zh-CN.md)  
+中文开发记录: [docs/development_log.zh-CN.md](docs/development_log.zh-CN.md)
+
 This repository is for the course project **High-dimensional Time Series Segmentation, Feature Extraction, and Operating Condition Clustering**.
 
 The project builds a complete data mining pipeline for industrial multivariate time series data:
 
 ```text
 Dataset -> Apache IoTDB -> DataFrame -> Segmentation -> Feature Extraction -> Clustering -> Visualization -> Report
+```
+
+## Deployment and Usage
+
+The repository does not commit large runtime files, raw datasets, Python virtual environments, Node dependencies, or Apache IoTDB binaries. After cloning the repository, use the following commands to reproduce the local environment and run the full pipeline.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/sortherncat/iotdb-time-series-mining.git
+cd iotdb-time-series-mining
+```
+
+### 2. Prepare Python Dependencies
+
+Using a virtual environment is recommended:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Download ETTh1
+
+```bash
+mkdir -p data/raw
+curl -L -o data/raw/ETTh1.csv https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv
+```
+
+If GitHub raw download is unavailable, manually download `ETTh1.csv` from the ETT repository and place it at `data/raw/ETTh1.csv`.
+
+### 4. Set Up and Start Apache IoTDB
+
+```bash
+bash scripts/setup_iotdb.sh
+bash scripts/start_iotdb.sh
+bash scripts/check_iotdb.sh
+```
+
+The setup script downloads Apache IoTDB 2.0.4 into `third_party/`. The default RPC endpoint is `127.0.0.1:6667`, with user `root` and password `root`.
+
+### 5. Import and Query Data
+
+```bash
+python data_loader.py --csv data/raw/ETTh1.csv --batch-size 1000
+
+python data_loader.py query \
+  --start "2016-07-01 00:00:00" \
+  --end "2016-07-03 00:00:00" \
+  --output data/processed/etth1_query_sample.csv
+```
+
+### 6. Run Segmentation, Feature Extraction, and Clustering
+
+```bash
+python segmentation.py --method ruptures --input data/raw/ETTh1.csv --model rbf --penalty 10 --min-size 48 --jump 10 --refine --refine-radius 20
+
+python segmentation.py --method window_stat --input data/raw/ETTh1.csv --window-size 48 --alpha 0.5 --threshold-quantile 0.95 --min-size 48
+
+python feature_extraction.py --input data/raw/ETTh1.csv --scaler standard
+
+python clustering.py --input data/raw/ETTh1.csv --min-k 2 --max-k 8
+```
+
+### 7. Start the Visualization Dashboard
+
+```bash
+python scripts/prepare_frontend_data.py
+
+cd frontend
+npm install
+npm run dev -- --port 5173
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173/
+```
+
+### 8. Stop IoTDB
+
+```bash
+bash scripts/stop_iotdb.sh
 ```
 
 ## Project Background

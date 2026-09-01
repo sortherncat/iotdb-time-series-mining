@@ -178,32 +178,15 @@ h1 {
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 24px;
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px 32px 56px;
 }
 
-.controls {
-  align-self: start;
-  position: sticky;
-  top: 88px;
-  border: 1px solid var(--hairline);
-  border-radius: 12px;
-  background: var(--panel);
-  padding: 18px;
-}
-
-.light .controls {
-  border-radius: 18px;
-}
-
 .control {
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
+  min-width: 190px;
 }
 
 .control span {
@@ -229,16 +212,29 @@ select {
 }
 
 .sensor-list {
-  display: grid;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 12px;
 }
 
 .sensor-list label {
   display: flex;
+  align-items: center;
   gap: 8px;
   color: var(--muted);
   font-size: 13px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 9999px;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.sensor-list.inline {
+  flex: 1;
+  min-width: 260px;
 }
 
 .panel {
@@ -260,6 +256,22 @@ select {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 14px;
+}
+
+.panel-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.light .panel-toolbar {
+  border-radius: 14px;
 }
 
 .chart {
@@ -300,16 +312,60 @@ select {
   font-weight: 700;
 }
 
+.feature-notes {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 32px 64px;
+}
+
+.feature-notes h2 {
+  margin: 0 0 16px;
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.note-grid article {
+  min-height: 150px;
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.light .note-grid article {
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.note-grid h3 {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.note-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
 @media (max-width: 980px) {
   .topbar,
   .hero,
-  .workspace {
+  .workspace,
+  .feature-notes {
     padding-left: 18px;
     padding-right: 18px;
   }
 
-  .hero,
-  .workspace {
+  .hero {
     grid-template-columns: 1fr;
   }
 
@@ -318,8 +374,8 @@ select {
     font-size: 34px;
   }
 
-  .controls {
-    position: static;
+  .note-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -340,5 +396,19 @@ select {
 
   .chart.tall {
     height: 460px;
+  }
+
+  .panel-toolbar {
+    align-items: stretch;
+  }
+
+  .control,
+  .sensor-list.inline {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .note-grid {
+    grid-template-columns: 1fr;
   }
 }

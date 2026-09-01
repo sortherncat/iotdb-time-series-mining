@@ -55,6 +55,7 @@ iotdb-time-series-mining/
 │   └── feature_extractor.py
 │   └── clusterer.py
 ├── clustering.py           # Clustering, model comparison, and condition labeling
+├── frontend/               # Interactive React visualization dashboard
 ├── visualization.py        # Figures for segmentation, clustering, and timelines
 ├── main.py                 # Main pipeline orchestration
 ├── requirements.txt        # Python dependencies
@@ -181,7 +182,7 @@ The required visualizations include:
 - [x] Segmentation method B implementation.
 - [x] Feature extraction implementation.
 - [x] Clustering implementation.
-- [ ] Visualization implementation.
+- [x] Interactive visualization dashboard.
 - [ ] Experimental report.
 
 ## Notes
@@ -375,3 +376,43 @@ outputs/clustering/<feature_method>/<algorithm>/clustering_metrics.json
 ```
 
 `segment_conditions.csv` contains each segment's condition ID, start time, end time, and duration. `condition_summary.csv` contains duration statistics for each operating condition.
+
+## Interactive Visualization Dashboard
+
+Task 5 is implemented as a React/Vite frontend with two design modes based on the design documents in `design/`:
+
+```text
+Apple Gallery: light, quiet, gallery-like presentation
+Binance Terminal: dark, dense, financial-platform dashboard
+```
+
+Prepare frontend data from the Python pipeline outputs:
+
+```bash
+python scripts/prepare_frontend_data.py
+```
+
+Start the dashboard:
+
+```bash
+cd frontend
+npm install
+npm run dev -- --port 5173
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173/
+```
+
+The dashboard includes:
+
+```text
+raw multichannel time series with segmentation boundaries
+2D clustering scatter plot with cluster centers
+representative segment comparison by operating condition
+operating-condition timeline
+```
+
+Interactive controls include design mode, segmentation method, clustering algorithm, visible sensors, and representative sensor selection.

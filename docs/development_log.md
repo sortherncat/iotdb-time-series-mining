@@ -1629,3 +1629,201 @@ outputs/clustering/window_stat_distance/gmm/condition_summary.csv
 ```
 
 This completes Task 4 clustering and operating condition identification.
+
+## 2026-09-01 - Task 5 Interactive Visualization Dashboard
+
+### Objective
+
+Build an interactive frontend for visualizing segmentation, clustering, representative time series, and operating-condition timelines.
+
+The frontend should follow the two design references:
+
+```text
+design/DESIGN_A.md
+design/DESIGN_B.md
+```
+
+and provide two visual modes.
+
+### Technology Path
+
+Selected stack:
+
+```text
+React
+Vite
+TypeScript
+Apache ECharts
+CSS theme variables
+```
+
+Reason:
+
+- React/Vite gives full layout and styling control.
+- ECharts supports line charts, markLine, markArea, scatter plots, and custom timeline bars.
+- CSS variables make it easy to switch between the Apple-like and Binance-like design modes.
+- This route provides a stronger webpage feeling than Streamlit.
+
+### Added Files
+
+Frontend project:
+
+```text
+frontend/package.json
+frontend/package-lock.json
+frontend/index.html
+frontend/vite.config.ts
+frontend/tsconfig.json
+frontend/src/main.tsx
+frontend/src/styles.css
+frontend/public/data/dashboard_data.json
+```
+
+Data preparation script:
+
+```text
+scripts/prepare_frontend_data.py
+```
+
+### Data Preparation
+
+The frontend does not read all raw CSV and output files directly. Instead, the Python script prepares one compact JSON file:
+
+```bash
+python scripts/prepare_frontend_data.py
+```
+
+Output:
+
+```text
+frontend/public/data/dashboard_data.json
+```
+
+The JSON contains:
+
+- sampled ETTh1 multichannel time series
+- segmentation boundaries from Method A and Method B
+- clustering assignments from K-Means and GMM
+- PCA 2D coordinates for segment feature vectors
+- cluster centers in the 2D projection
+- representative segments for each operating condition
+- condition duration summaries
+
+### Two Design Modes
+
+Apple Gallery:
+
+```text
+light canvas
+quiet blue interaction color
+large whitespace
+minimal chrome
+gallery-like layout
+```
+
+Binance Terminal:
+
+```text
+deep dark canvas
+yellow primary accent
+dense dashboard layout
+dark data panels
+financial-platform visual rhythm
+```
+
+The two modes share the same charts and data but use different CSS theme variables.
+
+### Required Visualizations
+
+The dashboard implements all four required visualizations.
+
+Raw multichannel time series with segmentation boundaries:
+
+```text
+ECharts line chart
+vertical dashed markLine for change points
+alternating markArea backgrounds for segments
+sensor visibility checkboxes
+```
+
+Clustering result scatter plot:
+
+```text
+PCA 2D feature projection
+color by condition_id
+diamond markers for cluster centers
+algorithm switch between K-Means and GMM
+```
+
+Representative segment comparison:
+
+```text
+select 2 to 3 representative segments per condition
+representatives selected by distance to cluster center
+overlay representative time series in one coordinate system
+sensor selector for comparison variable
+```
+
+Operating-condition timeline:
+
+```text
+custom ECharts range-bar timeline
+time axis
+color by condition_id
+hover tooltip with start time, end time, and duration
+```
+
+### Interaction Design
+
+Interactive controls include:
+
+```text
+design mode: Apple Gallery / Binance Terminal
+segmentation method: Method A / Method B
+clustering algorithm: K-Means / GMM
+representative sensor selector
+visible sensor checkboxes
+tab navigation across four visualizations
+```
+
+### Verification
+
+Frontend data preparation completed:
+
+```text
+Saved frontend data to frontend/public/data/dashboard_data.json
+```
+
+Production build completed:
+
+```bash
+cd frontend
+npm run build
+```
+
+Result:
+
+```text
+vite build completed successfully
+```
+
+The local development server was started:
+
+```bash
+npm run dev -- --port 5173
+```
+
+Local URL:
+
+```text
+http://127.0.0.1:5173/
+```
+
+The page and data endpoint were verified with HTTP requests:
+
+```text
+GET / -> 200 OK
+GET /data/dashboard_data.json -> returned dashboard metadata
+```
+
+This completes the first interactive implementation of Task 5.

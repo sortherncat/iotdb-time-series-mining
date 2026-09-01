@@ -53,6 +53,7 @@ iotdb-time-series-mining/
 │   └── ruptures_segmenter.py
 │   └── window_stat_segmenter.py
 │   └── feature_extractor.py
+│   └── clusterer.py
 ├── clustering.py           # Clustering, model comparison, and condition labeling
 ├── visualization.py        # Figures for segmentation, clustering, and timelines
 ├── main.py                 # Main pipeline orchestration
@@ -179,7 +180,7 @@ The required visualizations include:
 - [x] Segmentation method A implementation.
 - [x] Segmentation method B implementation.
 - [x] Feature extraction implementation.
-- [ ] Clustering implementation.
+- [x] Clustering implementation.
 - [ ] Visualization implementation.
 - [ ] Experimental report.
 
@@ -336,3 +337,41 @@ outputs/features/window_stat_distance_feature_metadata.json
 ```
 
 Each segment has 112 extracted features. The saved CSV files also include `segment_start`, `segment_end`, and `segment_length` as metadata columns.
+
+## Clustering and Operating Condition Identification
+
+Task 4 clusters segment feature matrices and maps each cluster to an operating condition ID such as `OP_001`.
+
+The implementation compares two clustering algorithms:
+
+```text
+K-Means
+Gaussian Mixture Model
+```
+
+For each algorithm, candidate cluster counts from `--min-k` to `--max-k` are evaluated by:
+
+```text
+Silhouette Score
+Calinski-Harabasz Index
+```
+
+Run clustering for both Method A and Method B feature matrices:
+
+```bash
+python clustering.py \
+  --input data/raw/ETTh1.csv \
+  --min-k 2 \
+  --max-k 8
+```
+
+Default outputs:
+
+```text
+outputs/clustering/algorithm_comparison.csv
+outputs/clustering/<feature_method>/<algorithm>/segment_conditions.csv
+outputs/clustering/<feature_method>/<algorithm>/condition_summary.csv
+outputs/clustering/<feature_method>/<algorithm>/clustering_metrics.json
+```
+
+`segment_conditions.csv` contains each segment's condition ID, start time, end time, and duration. `condition_summary.csv` contains duration statistics for each operating condition.

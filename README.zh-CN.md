@@ -2,6 +2,14 @@
 
 本仓库用于课程设计项目：**高维时间序列自动分段、特征提取与工况聚类识别**。
 
+## 文档索引
+
+- 英文 README：[README.md](README.md)
+- 中文 README：[README.zh-CN.md](README.zh-CN.md)
+- 开发记录英文版：[docs/development_log.md](docs/development_log.md)
+- 开发记录中文版：[docs/development_log.zh-CN.md](docs/development_log.zh-CN.md)
+- 任务 2-4 技术文档：[docs/technical_steps_2_4.zh-CN.md](docs/technical_steps_2_4.zh-CN.md)
+
 项目构建了一条完整的数据挖掘流程：
 
 ```text

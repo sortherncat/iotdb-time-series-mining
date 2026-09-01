@@ -1,7 +1,12 @@
 # IoTDB Time Series Mining
 
-中文文档: [README.zh-CN.md](README.zh-CN.md)  
-中文开发记录: [docs/development_log.zh-CN.md](docs/development_log.zh-CN.md)
+## Documentation
+
+- English README: [README.md](README.md)
+- 中文 README: [README.zh-CN.md](README.zh-CN.md)
+- Development log: [docs/development_log.md](docs/development_log.md)
+- 中文开发记录: [docs/development_log.zh-CN.md](docs/development_log.zh-CN.md)
+- 任务 2-4 技术文档: [docs/technical_steps_2_4.zh-CN.md](docs/technical_steps_2_4.zh-CN.md)
 
 This repository is for the course project **High-dimensional Time Series Segmentation, Feature Extraction, and Operating Condition Clustering**.
 

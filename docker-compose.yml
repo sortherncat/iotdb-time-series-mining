@@ -1,0 +1,50 @@
+services:
+  iotdb:
+    build:
+      context: .
+      dockerfile: Dockerfile.iotdb
+    container_name: iotdb-time-series-mining-iotdb
+    ports:
+      - "6667:6667"
+      - "10710:10710"
+      - "10730:10730"
+    volumes:
+      - iotdb_data:/opt/apache-iotdb-2.0.4-all-bin/data
+      - iotdb_logs:/opt/apache-iotdb-2.0.4-all-bin/logs
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: iotdb-time-series-mining-app
+    depends_on:
+      - iotdb
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      IOTDB_HOST: iotdb
+      IOTDB_PORT: "6667"
+    command: bash
+    tty: true
+    stdin_open: true
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iotdb-time-series-mining-frontend
+    depends_on:
+      - app
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+
+volumes:
+  iotdb_data:
+  iotdb_logs:
+  frontend_node_modules:

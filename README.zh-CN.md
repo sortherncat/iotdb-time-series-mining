@@ -9,6 +9,7 @@
 - 开发记录英文版：[docs/development_log.md](docs/development_log.md)
 - 开发记录中文版：[docs/development_log.zh-CN.md](docs/development_log.zh-CN.md)
 - 任务 2-4 技术文档：[docs/technical_steps_2_4.zh-CN.md](docs/technical_steps_2_4.zh-CN.md)
+- Docker Compose 使用说明：[docs/docker_usage.zh-CN.md](docs/docker_usage.zh-CN.md)
 
 项目构建了一条完整的数据挖掘流程：
 
@@ -77,6 +78,21 @@ iotdb-time-series-mining/
 ## 部署与运行说明
 
 本仓库不提交大型运行时文件，包括原始数据、IoTDB 二进制包、Python 虚拟环境、Node 依赖和前端构建产物。拉取代码后，按下面步骤复现环境。
+
+Ubuntu 用户推荐优先使用 Docker Compose：
+
+```bash
+docker compose up -d --build
+docker compose exec app bash scripts/run_pipeline.sh
+```
+
+然后访问：
+
+```text
+http://localhost:5173/
+```
+
+详细说明见：[docs/docker_usage.zh-CN.md](docs/docker_usage.zh-CN.md)。
 
 ### 1. 克隆仓库
 

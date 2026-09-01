@@ -7,6 +7,7 @@
 - Development log: [docs/development_log.md](docs/development_log.md)
 - 中文开发记录: [docs/development_log.zh-CN.md](docs/development_log.zh-CN.md)
 - 任务 2-4 技术文档: [docs/technical_steps_2_4.zh-CN.md](docs/technical_steps_2_4.zh-CN.md)
+- Docker Compose 使用说明: [docs/docker_usage.zh-CN.md](docs/docker_usage.zh-CN.md)
 
 This repository is for the course project **High-dimensional Time Series Segmentation, Feature Extraction, and Operating Condition Clustering**.
 
@@ -19,6 +20,19 @@ Dataset -> Apache IoTDB -> DataFrame -> Segmentation -> Feature Extraction -> Cl
 ## Deployment and Usage
 
 The repository does not commit large runtime files, raw datasets, Python virtual environments, Node dependencies, or Apache IoTDB binaries. After cloning the repository, use the following commands to reproduce the local environment and run the full pipeline.
+
+For Ubuntu users, Docker Compose is the recommended way to reproduce the full environment. See [docs/docker_usage.zh-CN.md](docs/docker_usage.zh-CN.md), or run:
+
+```bash
+docker compose up -d --build
+docker compose exec app bash scripts/run_pipeline.sh
+```
+
+Then open:
+
+```text
+http://localhost:5173/
+```
 
 ### 1. Clone the Repository
 

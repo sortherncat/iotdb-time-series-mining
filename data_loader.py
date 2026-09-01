@@ -8,6 +8,7 @@ results back into a pandas DataFrame for later analysis.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -316,10 +317,10 @@ def parse_args() -> argparse.Namespace:
     )
 
     for subparser in (import_parser, query_parser):
-        subparser.add_argument("--host", default="127.0.0.1")
-        subparser.add_argument("--port", default="6667")
-        subparser.add_argument("--user", default="root")
-        subparser.add_argument("--password", default="root")
+        subparser.add_argument("--host", default=os.getenv("IOTDB_HOST", "127.0.0.1"))
+        subparser.add_argument("--port", default=os.getenv("IOTDB_PORT", "6667"))
+        subparser.add_argument("--user", default=os.getenv("IOTDB_USER", "root"))
+        subparser.add_argument("--password", default=os.getenv("IOTDB_PASSWORD", "root"))
     argv = sys.argv[1:]
     if not argv or argv[0] not in {"import", "query", "-h", "--help"}:
         argv = ["import", *argv]

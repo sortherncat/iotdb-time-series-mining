@@ -1,0 +1,22 @@
+FROM eclipse-temurin:8-jre
+
+ARG IOTDB_VERSION=2.0.4
+ENV IOTDB_HOME=/opt/apache-iotdb-${IOTDB_VERSION}-all-bin
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -L --fail -o /tmp/apache-iotdb.zip \
+      https://archive.apache.org/dist/iotdb/${IOTDB_VERSION}/apache-iotdb-${IOTDB_VERSION}-all-bin.zip \
+    && unzip -q /tmp/apache-iotdb.zip -d /opt \
+    && rm /tmp/apache-iotdb.zip \
+    && sed -i 's/-Xss512k/-Xss1m/g' ${IOTDB_HOME}/conf/datanode-env.sh
+
+COPY docker/iotdb-entrypoint.sh /usr/local/bin/iotdb-entrypoint.sh
+RUN chmod +x /usr/local/bin/iotdb-entrypoint.sh
+
+WORKDIR ${IOTDB_HOME}
+
+EXPOSE 6667 10710 10730
+
+CMD ["iotdb-entrypoint.sh"]

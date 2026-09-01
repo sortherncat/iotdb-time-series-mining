@@ -48,6 +48,8 @@ The planned code structure is:
 iotdb-time-series-mining/
 ├── data_loader.py          # IoTDB data import, query, and DataFrame conversion
 ├── segmentation.py         # Change point detection and time series segmentation
+├── src/                    # Reusable algorithm modules
+│   └── ruptures_segmenter.py
 ├── feature_extraction.py   # Segment-level feature extraction
 ├── clustering.py           # Clustering, model comparison, and condition labeling
 ├── visualization.py        # Figures for segmentation, clustering, and timelines
@@ -72,6 +74,36 @@ root.industry.device001.load_2
 
 - Use batch insertion for efficient data import.
 - Query time ranges from IoTDB and convert the result into `pandas.DataFrame`.
+
+## Apache IoTDB Setup
+
+Apache IoTDB is not committed to this repository. Instead, the repository provides setup scripts so that another user can prepare the same local environment after cloning the project.
+
+Prepare IoTDB:
+
+```bash
+bash scripts/setup_iotdb.sh
+```
+
+Start IoTDB:
+
+```bash
+bash scripts/start_iotdb.sh
+```
+
+Verify IoTDB with CLI:
+
+```bash
+bash scripts/check_iotdb.sh
+```
+
+Stop IoTDB:
+
+```bash
+bash scripts/stop_iotdb.sh
+```
+
+The setup script downloads Apache IoTDB 2.0.4 into `third_party/` and applies the macOS JVM stack-size fix from `-Xss512k` to `-Xss1m` when needed.
 
 ### 2. Time Series Segmentation
 
@@ -139,8 +171,11 @@ The required visualizations include:
 - [x] Initial README uploaded.
 - [ ] Dataset selection and download.
 - [ ] Apache IoTDB environment setup.
-- [ ] Data import and query implementation.
-- [ ] Segmentation implementation.
+- [x] Data import implementation.
+- [x] IoTDB import verification.
+- [x] Time range query and DataFrame conversion.
+- [x] Segmentation method A implementation.
+- [x] Segmentation method B implementation.
 - [ ] Feature extraction implementation.
 - [ ] Clustering implementation.
 - [ ] Visualization implementation.
@@ -149,3 +184,121 @@ The required visualizations include:
 ## Notes
 
 This repository is currently in the planning stage. Code implementation will be added step by step after the project design is finalized.
+
+## ETTh1 Data Import
+
+The selected dataset is ETTh1 from the ETT dataset collection.
+
+Download the CSV file:
+
+```bash
+mkdir -p data/raw
+curl -L -o data/raw/ETTh1.csv https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv
+```
+
+Start IoTDB, then import ETTh1:
+
+```bash
+python data_loader.py --csv data/raw/ETTh1.csv --batch-size 1000
+```
+
+The IoTDB storage path is:
+
+```text
+root.industry.transformer001.high_useful_load
+root.industry.transformer001.high_useless_load
+root.industry.transformer001.middle_useful_load
+root.industry.transformer001.middle_useless_load
+root.industry.transformer001.low_useful_load
+root.industry.transformer001.low_useless_load
+root.industry.transformer001.oil_temperature
+```
+
+## ETTh1 Data Query
+
+After ETTh1 has been imported, query a specified time range from IoTDB and convert it into a `pandas.DataFrame`:
+
+```bash
+python data_loader.py query \
+  --start "2016-07-01 00:00:00" \
+  --end "2016-07-03 00:00:00"
+```
+
+Save the queried DataFrame to CSV for later analysis:
+
+```bash
+python data_loader.py query \
+  --start "2016-07-01 00:00:00" \
+  --end "2016-07-03 00:00:00" \
+  --output data/processed/etth1_query_sample.csv
+```
+
+The query result contains the IoTDB millisecond timestamp, a converted `datetime` column, and the seven ETTh1 measurement columns.
+
+## Segmentation Method A: ruptures
+
+Method A is encapsulated in `src/ruptures_segmenter.py` as `RupturesSegmenter` and uses `ruptures.Pelt` for multivariate joint change point detection. The seven ETTh1 sensor columns are standardized first, then passed to `ruptures` as one matrix with shape `(time_steps, sensors)`.
+
+To balance speed and precision, the implementation uses a two-stage strategy:
+
+```text
+coarse search with jump > 1 -> fine local search near each coarse boundary
+```
+
+The fine search evaluates each candidate boundary in a local neighborhood and keeps the position with the lowest left-plus-right segment cost.
+
+Run method A on the original ETTh1 CSV:
+
+```bash
+python segmentation.py \
+  --input data/raw/ETTh1.csv \
+  --model rbf \
+  --penalty 10 \
+  --min-size 48 \
+  --jump 10 \
+  --refine \
+  --refine-radius 20
+```
+
+Default output:
+
+```text
+outputs/segmentation/method_a_ruptures.json
+```
+
+The output JSON contains:
+
+```text
+change_points: internal change point indexes
+segments: [(start, end), ...]
+```
+
+## Segmentation Method B: Sliding Window Statistical Distance
+
+Method B is encapsulated in `src/window_stat_segmenter.py`. It compares the left and right windows around each candidate point:
+
+```text
+S(t) = ||mean_left - mean_right||_2 + alpha * ||cov_left - cov_right||_F
+```
+
+Then it selects local peaks above a score quantile threshold and filters nearby change points with the minimum segment length constraint.
+
+Run method B:
+
+```bash
+python segmentation.py \
+  --method window_stat \
+  --input data/raw/ETTh1.csv \
+  --window-size 48 \
+  --alpha 0.5 \
+  --threshold-quantile 0.95 \
+  --min-size 48
+```
+
+Default output:
+
+```text
+outputs/segmentation/method_b_window_stat.json
+```
+
+The output JSON contains the detected `change_points`, final `segments`, and the full sliding-window score curve.

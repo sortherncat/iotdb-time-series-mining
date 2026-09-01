@@ -171,8 +171,8 @@ The required visualizations include:
 
 - [x] Project repository created.
 - [x] Initial README uploaded.
-- [ ] Dataset selection and download.
-- [ ] Apache IoTDB environment setup.
+- [x] Dataset selection and download.
+- [x] Apache IoTDB environment setup.
 - [x] Data import implementation.
 - [x] IoTDB import verification.
 - [x] Time range query and DataFrame conversion.

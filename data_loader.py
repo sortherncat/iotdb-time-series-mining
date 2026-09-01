@@ -49,6 +49,10 @@ class IoTDBConfig:
     zone_id: str = "Asia/Shanghai"
 
 
+class TimestampUnitError(ValueError):
+    """Raised when queried IoTDB timestamps appear to use the wrong unit."""
+
+
 def load_etth1_csv(csv_path: str | Path) -> pd.DataFrame:
     """Load and validate the ETTh1 CSV file."""
 
@@ -99,11 +103,42 @@ def create_session(config: IoTDBConfig) -> Session:
     )
 
 
+def database_from_device_path(device_path: str) -> str:
+    """Infer the IoTDB database path from a device path."""
+
+    parts = device_path.split(".")
+    if len(parts) < 2 or parts[0] != "root":
+        raise ValueError(
+            "device_path must start with root and contain at least one database level, "
+            f"got: {device_path}"
+        )
+    return ".".join(parts[:2])
+
+
+def reset_database(database_path: str, config: IoTDBConfig) -> None:
+    """Delete an existing IoTDB database before a clean re-import."""
+
+    session = create_session(config)
+    session.open(False)
+    try:
+        try:
+            session.execute_non_query_statement(f"DELETE DATABASE {database_path}")
+            print(f"Deleted existing database: {database_path}")
+        except Exception as exc:
+            message = str(exc).lower()
+            if "not exist" not in message and "does not exist" not in message:
+                raise
+            print(f"Database does not exist yet: {database_path}")
+    finally:
+        session.close()
+
+
 def import_etth1_to_iotdb(
     csv_path: str | Path,
     device_path: str = "root.industry.transformer001",
     batch_size: int = 1000,
     config: IoTDBConfig | None = None,
+    reset: bool = False,
 ) -> int:
     """Import ETTh1 into IoTDB using batched records.
 
@@ -120,6 +155,10 @@ def import_etth1_to_iotdb(
 
     df = load_etth1_csv(csv_path)
     config = config or IoTDBConfig()
+    database_path = database_from_device_path(device_path)
+    if reset:
+        reset_database(database_path, config)
+
     measurements = [MEASUREMENT_NAMES[column] for column in SENSOR_COLUMNS]
     data_types = [TSDataType.DOUBLE] * len(measurements)
 
@@ -127,7 +166,7 @@ def import_etth1_to_iotdb(
     session.open(False)
     try:
         try:
-            session.execute_non_query_statement("CREATE DATABASE root.industry")
+            session.execute_non_query_statement(f"CREATE DATABASE {database_path}")
         except Exception as exc:
             message = str(exc).lower()
             if "already" not in message and "exist" not in message:
@@ -162,6 +201,27 @@ def to_query_timestamp(time_text: str) -> int:
     return int(pd.Timestamp(time_text).value // 1_000_000)
 
 
+def validate_query_timestamps(df: pd.DataFrame) -> None:
+    """Detect common second-vs-millisecond timestamp import mistakes."""
+
+    if "Time" not in df.columns or df.empty:
+        return
+    first_time = int(df["Time"].iloc[0])
+    first_datetime = pd.to_datetime(first_time, unit="ms")
+    if first_datetime.year < 2000:
+        as_seconds = pd.to_datetime(first_time, unit="s", errors="coerce")
+        hint = ""
+        if pd.notna(as_seconds) and as_seconds.year >= 2000:
+            hint = f" The same value interpreted as seconds is {as_seconds}."
+        raise TimestampUnitError(
+            "Queried timestamps look like seconds were written into IoTDB where "
+            "milliseconds are expected."
+            f" First raw Time={first_time}, interpreted as milliseconds={first_datetime}."
+            f"{hint} Re-import with: python data_loader.py import --csv data/raw/ETTh1.csv "
+            "--reset-database"
+        )
+
+
 def query_etth1_from_iotdb(
     start_time: str,
     end_time: str,
@@ -191,6 +251,8 @@ def query_etth1_from_iotdb(
 
         if df.empty:
             return df
+
+        validate_query_timestamps(df)
 
         rename_columns = {
             f"{device_path}.{measurement}": measurement for measurement in measurements
@@ -224,6 +286,11 @@ def parse_args() -> argparse.Namespace:
         help="IoTDB device path for ETTh1 measurements",
     )
     import_parser.add_argument("--batch-size", type=int, default=1000)
+    import_parser.add_argument(
+        "--reset-database",
+        action="store_true",
+        help="Delete the target IoTDB database before importing. Use this to fix old data imported with wrong timestamp units.",
+    )
 
     query_parser = subparsers.add_parser(
         "query", help="Query ETTh1 data from IoTDB into a pandas DataFrame"
@@ -276,6 +343,7 @@ def main() -> None:
             device_path=args.device,
             batch_size=args.batch_size,
             config=config,
+            reset=args.reset_database,
         )
         print(f"Finished importing {imported_rows} rows to {args.device}")
     elif args.command == "query":

@@ -299,6 +299,17 @@ Start IoTDB, then import ETTh1:
 python data_loader.py --csv data/raw/ETTh1.csv --batch-size 1000
 ```
 
+If the dataset was imported previously with an older script and query results show abnormal dates such as `1970-01-17`, the stored timestamps were likely written in seconds instead of milliseconds. Clean the target database and re-import:
+
+```bash
+python data_loader.py import \
+  --csv data/raw/ETTh1.csv \
+  --batch-size 1000 \
+  --reset-database
+```
+
+`--reset-database` deletes the target database, such as `root.industry`, before writing ETTh1 again with millisecond timestamps.
+
 The IoTDB storage path is:
 
 ```text

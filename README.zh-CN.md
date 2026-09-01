@@ -127,6 +127,17 @@ password: root
 python data_loader.py --csv data/raw/ETTh1.csv --batch-size 1000
 ```
 
+如果之前使用旧代码导入过数据，查询结果出现 `1970-01-17` 这类异常时间，说明 IoTDB 中已有秒级时间戳误写数据。此时需要清空目标数据库并重新导入：
+
+```bash
+python data_loader.py import \
+  --csv data/raw/ETTh1.csv \
+  --batch-size 1000 \
+  --reset-database
+```
+
+`--reset-database` 会先删除目标数据库 `root.industry`，再按毫秒级时间戳重新写入 ETTh1。
+
 IoTDB 存储路径：
 
 ```text

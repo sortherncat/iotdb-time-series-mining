@@ -1962,6 +1962,39 @@ timestamp_precision=ms
 
 If an old IoTDB Docker volume already exists, users should run `docker compose down -v`, pull the updated image, start the services, and re-import the data.
 
+### pandas Timestamp Unit Fix
+
+The Ubuntu container still returned empty queries after import. Read-only checks showed that IoTDB stored the first timestamp as:
+
+```text
+1467331200
+```
+
+The correct millisecond timestamp for ETTh1 `2016-07-01 00:00:00` is:
+
+```text
+1467331200000
+```
+
+Further pandas inspection inside the container showed:
+
+```text
+dtype: datetime64[us]
+astype int64: 1467331200000000
+current code result: 1467331200
+expected ms: 1467331200000
+```
+
+The old implementation assumed that `datetimes.astype("int64")` always returned nanoseconds and divided by `1_000_000`. In the pandas 3.0.5 container environment, the dtype was `datetime64[us]`, so the conversion produced seconds instead of milliseconds.
+
+Timestamp conversion now explicitly casts to milliseconds:
+
+```python
+pd.to_datetime(datetimes).astype("datetime64[ms]").astype("int64")
+```
+
+This keeps import and query timestamps stable for both `datetime64[ns]` and `datetime64[us]`.
+
 ### Branch
 
 Docker-related changes were kept on the GitHub `docker` branch instead of being pushed to `main`.

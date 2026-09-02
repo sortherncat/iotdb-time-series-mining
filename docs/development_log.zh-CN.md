@@ -467,6 +467,39 @@ timestamp_precision=ms
 
 如果服务器已经生成过旧的 IoTDB volume，需要执行 `docker compose down -v` 后重新拉取镜像、启动并导入。
 
+### pandas 时间戳单位修正
+
+Ubuntu 容器中继续出现导入后查询为空的问题。进一步只读排查发现，IoTDB 中实际写入的首个时间为：
+
+```text
+1467331200
+```
+
+而 ETTh1 的 `2016-07-01 00:00:00` 正确毫秒时间戳应为：
+
+```text
+1467331200000
+```
+
+继续检查容器内 pandas 结果：
+
+```text
+dtype: datetime64[us]
+astype int64: 1467331200000000
+current code result: 1467331200
+expected ms: 1467331200000
+```
+
+根因是旧实现默认认为 `datetimes.astype("int64")` 一定返回纳秒，因此固定除以 `1_000_000`。但 pandas 3.0.5 在容器中返回的是微秒级 `datetime64[us]`，导致结果被换算成秒。
+
+已将时间戳转换改为显式转毫秒：
+
+```python
+pd.to_datetime(datetimes).astype("datetime64[ms]").astype("int64")
+```
+
+这样无论 pandas 底层是 `datetime64[ns]` 还是 `datetime64[us]`，导入和查询都会统一使用毫秒时间戳。
+
 ### 分支
 
 容器化相关改动未合并到 `main`，而是单独提交到 GitHub 的 `docker` 分支，便于后续通过 Pull Request 审查和合并。

@@ -80,7 +80,8 @@ def load_etth1_csv(csv_path: str | Path) -> pd.DataFrame:
 def to_iotdb_timestamps(datetimes: pd.Series) -> list[int]:
     """Convert pandas datetimes to millisecond timestamps used by IoTDB."""
 
-    return (datetimes.astype("int64") // 1_000_000).astype(int).tolist()
+    milliseconds = pd.to_datetime(datetimes).astype("datetime64[ms]").astype("int64")
+    return milliseconds.astype(int).tolist()
 
 
 def chunk_dataframe(df: pd.DataFrame, batch_size: int) -> Iterable[pd.DataFrame]:
@@ -199,7 +200,7 @@ def import_etth1_to_iotdb(
 def to_query_timestamp(time_text: str) -> int:
     """Convert a time string to the millisecond timestamp used by IoTDB."""
 
-    return int(pd.Timestamp(time_text).value // 1_000_000)
+    return to_iotdb_timestamps(pd.Series([time_text]))[0]
 
 
 def validate_query_timestamps(df: pd.DataFrame) -> None:

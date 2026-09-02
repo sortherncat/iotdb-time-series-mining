@@ -353,13 +353,13 @@ frontend：React/Vite 可视化前端
 
 ```text
 iotdb:
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64
 
 app:
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11-amd64
 
 frontend:
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22-amd64
 ```
 
 其中：
@@ -429,6 +429,24 @@ docker buildx build --provenance=false ...
 ```
 
 三个镜像均已推送并通过远端 manifest 检查。
+
+### 架构修正
+
+首次推送的镜像是在 Apple Silicon / arm64 Docker 环境中构建的。Ubuntu x86_64 宿主机拉取后会出现：
+
+```text
+exec /usr/bin/bash: exec format error
+```
+
+该错误的直接原因是镜像架构与宿主机架构不一致。后续在 `docker-compose.yml` 中为所有服务固定 `platform: linux/amd64`，并将默认镜像 tag 调整为 `linux/amd64`：
+
+```text
+iotdb-2.0.4-amd64
+app-py3.11-amd64
+frontend-node22-amd64
+```
+
+已使用 `docker buildx build --platform linux/amd64 --provenance=false` 重新构建并推送。远端 manifest 检查确认三个 `*-amd64` tag 均为 `architecture: amd64`、`os: linux`。
 
 ### 分支
 

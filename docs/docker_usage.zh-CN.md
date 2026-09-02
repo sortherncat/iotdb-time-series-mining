@@ -30,6 +30,34 @@ docker --version
 docker compose version
 ```
 
+## 镜像架构说明
+
+默认镜像面向常见 Ubuntu 服务器和 PC：
+
+```text
+linux/amd64
+```
+
+如果宿主机是 `x86_64`，必须使用 `*-amd64` 标签。否则如果误拉了在 Apple Silicon 机器上构建的 `arm64` 镜像，容器启动时会出现：
+
+```text
+exec /usr/bin/bash: exec format error
+```
+
+可以用下面命令查看宿主机架构：
+
+```bash
+uname -m
+```
+
+常见对应关系：
+
+```text
+x86_64  -> linux/amd64
+aarch64 -> linux/arm64
+arm64   -> linux/arm64
+```
+
 ## 启动服务
 
 推荐启动方式是在项目根目录先拉取已经推送到阿里云 ACR 的 IoTDB 镜像，再启动服务：
@@ -49,7 +77,7 @@ docker compose up -d --build
 
 ```yaml
 iotdb:
-  image: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+  image: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64
   build:
     context: .
     dockerfile: Dockerfile.iotdb
@@ -57,18 +85,24 @@ iotdb:
 
 当命令带上 `--build` 时，Docker Compose 会强制执行 `Dockerfile.iotdb`，于是会重新从 Docker Hub 拉取 Java 基础镜像，并重新下载 Apache IoTDB 包。这样就不会走已经上传好的阿里云镜像。
 
-默认镜像地址：
+默认镜像地址均为 `linux/amd64`：
 
 ```text
-iotdb:    crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
-app:      crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
-frontend: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+iotdb:    crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64
+app:      crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11-amd64
+frontend: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22-amd64
+```
+
+`docker-compose.yml` 也已经为三个服务固定：
+
+```yaml
+platform: linux/amd64
 ```
 
 如果运行环境在阿里云专有网络 VPC 内，可以切换为 VPC 镜像地址：
 
 ```bash
-IOTDB_IMAGE=crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 \
+IOTDB_IMAGE=crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64 \
 docker compose up -d
 ```
 
@@ -151,26 +185,22 @@ http://localhost:5173/
 构建并推送 IoTDB 镜像到公网 ACR。注意：为了兼容阿里云 ACR，需要关闭 Docker BuildKit 的 provenance/attestation 元数据：
 
 ```bash
-docker buildx build --provenance=false \
+docker buildx build --platform linux/amd64 --provenance=false \
   -f Dockerfile.iotdb \
-  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 \
-  --load .
-
-docker login crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com
-
-docker push crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64 \
+  --push .
 ```
 
 如果需要在阿里云 VPC 内使用专有网络地址，可以额外打 tag 并推送：
 
 ```bash
 docker tag \
-  crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 \
-  crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+  crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64 \
+  crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64
 
 docker login crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com
 
-docker push crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+docker push crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64
 ```
 
 查看服务状态：
@@ -216,23 +246,19 @@ docker compose down -v
 构建并推送 Python app 镜像：
 
 ```bash
-docker buildx build --provenance=false \
+docker buildx build --platform linux/amd64 --provenance=false \
   -f Dockerfile.app \
-  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11 \
-  --load .
-
-docker push crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11-amd64 \
+  --push .
 ```
 
 构建并推送 frontend 镜像：
 
 ```bash
-docker buildx build --provenance=false \
+docker buildx build --platform linux/amd64 --provenance=false \
   -f frontend/Dockerfile \
-  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22 \
-  --load frontend
-
-docker push crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22-amd64 \
+  --push frontend
 ```
 
 ## 注意事项

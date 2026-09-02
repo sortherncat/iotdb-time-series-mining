@@ -1,6 +1,7 @@
 services:
   iotdb:
-    image: ${IOTDB_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4}
+    image: ${IOTDB_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64}
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile.iotdb
@@ -14,7 +15,8 @@ services:
       - iotdb_logs:/opt/apache-iotdb-2.0.4-all-bin/logs
 
   app:
-    image: ${APP_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11}
+    image: ${APP_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11-amd64}
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile.app
@@ -32,7 +34,8 @@ services:
     stdin_open: true
 
   frontend:
-    image: ${FRONTEND_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22}
+    image: ${FRONTEND_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22-amd64}
+    platform: linux/amd64
     build:
       context: ./frontend
       dockerfile: Dockerfile

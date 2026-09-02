@@ -1864,13 +1864,13 @@ The main runtime images were built and pushed to Aliyun ACR:
 
 ```text
 iotdb:
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4-amd64
 
 app:
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11-amd64
 
 frontend:
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22-amd64
 ```
 
 The `iotdb` image contains Apache IoTDB 2.0.4. The `app` image contains Python dependencies and a bundled ETTh1 CSV. The `frontend` image contains Node and npm dependencies.
@@ -1918,6 +1918,30 @@ docker buildx build --provenance=false ...
 ```
 
 All three remote tags were verified with `docker manifest inspect`.
+
+### Architecture Fix
+
+The first pushed images were built on an Apple Silicon / arm64 Docker environment. On Ubuntu x86_64 hosts, those images fail with:
+
+```text
+exec /usr/bin/bash: exec format error
+```
+
+The direct cause is an image architecture mismatch. The Compose file now pins all services to `platform: linux/amd64`, and the default image tags were changed to explicit `linux/amd64` tags:
+
+```text
+iotdb-2.0.4-amd64
+app-py3.11-amd64
+frontend-node22-amd64
+```
+
+The images were rebuilt and pushed with:
+
+```bash
+docker buildx build --platform linux/amd64 --provenance=false ...
+```
+
+Remote manifest verification confirmed `architecture: amd64` and `os: linux` for all three `*-amd64` tags.
 
 ### Branch
 

@@ -32,20 +32,32 @@ docker compose version
 
 ## 启动服务
 
-在项目根目录执行：
-
-```bash
-docker compose up -d --build
-```
-
-如果已经将 IoTDB 镜像推送到阿里云 ACR，普通公网环境可以直接拉取默认镜像：
+推荐启动方式是在项目根目录先拉取已经推送到阿里云 ACR 的 IoTDB 镜像，再启动服务：
 
 ```bash
 docker compose pull iotdb
 docker compose up -d
 ```
 
-默认 IoTDB 镜像地址为：
+不要在普通启动时使用：
+
+```bash
+docker compose up -d --build
+```
+
+因为 `docker-compose.yml` 中的 `iotdb` 服务同时保留了 `image` 和 `build` 配置：
+
+```yaml
+iotdb:
+  image: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+  build:
+    context: .
+    dockerfile: Dockerfile.iotdb
+```
+
+当命令带上 `--build` 时，Docker Compose 会强制执行 `Dockerfile.iotdb`，于是会重新从 Docker Hub 拉取 Java 基础镜像，并重新下载 Apache IoTDB 包。这样就不会走已经上传好的阿里云镜像。
+
+默认 IoTDB 镜像地址：
 
 ```text
 crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
@@ -65,6 +77,26 @@ iotdb: Apache IoTDB 2.0.4
 app: Python 数据处理环境
 frontend: React/Vite 前端页面
 ```
+
+## 什么时候才需要 --build
+
+只有在以下情况才需要使用 `--build`：
+
+```text
+1. 修改了 Dockerfile.iotdb，希望重新构建 IoTDB 镜像
+2. 修改了 Dockerfile.app，希望重新构建 Python 环境
+3. 修改了 frontend/Dockerfile，希望重新构建前端环境
+```
+
+如果只是运行项目、导入数据、分段、聚类或打开页面，不需要 `--build`。
+
+开发者本地重新构建所有镜像：
+
+```bash
+docker compose up -d --build
+```
+
+但这会重新构建 IoTDB 镜像，速度较慢。
 
 ## 一键运行完整流程
 
@@ -100,11 +132,13 @@ http://localhost:5173/
 
 ## 常用命令
 
-构建并推送 IoTDB 镜像到公网 ACR：
+构建并推送 IoTDB 镜像到公网 ACR。注意：为了兼容阿里云 ACR，需要关闭 Docker BuildKit 的 provenance/attestation 元数据：
 
 ```bash
-docker build -f Dockerfile.iotdb \
-  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 .
+docker buildx build --provenance=false \
+  -f Dockerfile.iotdb \
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 \
+  --load .
 
 docker login crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com
 

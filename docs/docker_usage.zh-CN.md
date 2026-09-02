@@ -142,6 +142,21 @@ docker compose up -d --build
 docker compose exec app bash scripts/run_pipeline.sh
 ```
 
+如果曾经用旧 IoTDB 容器导入过数据，建议先清理旧的 IoTDB volume 再重新启动：
+
+```bash
+docker compose down -v
+docker compose pull
+docker compose up -d
+docker compose exec app bash scripts/run_pipeline.sh
+```
+
+原因是旧容器可能使用了非毫秒时间精度，导致导入成功但按 `2016-07-01` 这类真实时间范围查询时返回 0 行。当前 IoTDB 镜像已经固定：
+
+```text
+timestamp_precision=ms
+```
+
 该脚本会自动完成：
 
 ```text

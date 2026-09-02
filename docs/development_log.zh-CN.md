@@ -448,6 +448,25 @@ frontend-node22-amd64
 
 已使用 `docker buildx build --platform linux/amd64 --provenance=false` 重新构建并推送。远端 manifest 检查确认三个 `*-amd64` tag 均为 `architecture: amd64`、`os: linux`。
 
+### IoTDB 时间精度修正
+
+容器内 pipeline 出现过导入成功但样例查询返回 0 行的问题：
+
+```text
+Finished importing 17420 rows to root.industry.transformer001
+Queried 0 rows from root.industry.transformer001
+```
+
+根因是 IoTDB 服务端时间精度与代码中的毫秒时间戳假设不一致。ETTh1 的原始时间从 `2016-07-01 00:00:00` 开始，导入和查询代码都按毫秒时间戳处理；如果 IoTDB 服务端按秒级精度解释，后续按毫秒范围查询就会落空。
+
+已在 `Dockerfile.iotdb` 中向 `conf/iotdb-system.properties` 追加：
+
+```text
+timestamp_precision=ms
+```
+
+如果服务器已经生成过旧的 IoTDB volume，需要执行 `docker compose down -v` 后重新拉取镜像、启动并导入。
+
 ### 分支
 
 容器化相关改动未合并到 `main`，而是单独提交到 GitHub 的 `docker` 分支，便于后续通过 Pull Request 审查和合并。

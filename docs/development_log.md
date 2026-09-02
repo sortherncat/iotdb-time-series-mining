@@ -1943,6 +1943,25 @@ docker buildx build --platform linux/amd64 --provenance=false ...
 
 Remote manifest verification confirmed `architecture: amd64` and `os: linux` for all three `*-amd64` tags.
 
+### IoTDB Timestamp Precision Fix
+
+The container pipeline once imported all rows successfully but returned an empty sample query:
+
+```text
+Finished importing 17420 rows to root.industry.transformer001
+Queried 0 rows from root.industry.transformer001
+```
+
+The root cause was a mismatch between the IoTDB server timestamp precision and the code's millisecond timestamp assumption. ETTh1 starts at `2016-07-01 00:00:00`; both import and query code use millisecond timestamps. If the server interprets time in seconds, millisecond-range queries do not match the imported rows.
+
+`Dockerfile.iotdb` now appends the following setting to `conf/iotdb-system.properties`:
+
+```text
+timestamp_precision=ms
+```
+
+If an old IoTDB Docker volume already exists, users should run `docker compose down -v`, pull the updated image, start the services, and re-import the data.
+
 ### Branch
 
 Docker-related changes were kept on the GitHub `docker` branch instead of being pushed to `main`.

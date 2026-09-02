@@ -10,7 +10,8 @@ RUN apt-get update \
       https://archive.apache.org/dist/iotdb/${IOTDB_VERSION}/apache-iotdb-${IOTDB_VERSION}-all-bin.zip \
     && unzip -q /tmp/apache-iotdb.zip -d /opt \
     && rm /tmp/apache-iotdb.zip \
-    && sed -i 's/-Xss512k/-Xss1m/g' ${IOTDB_HOME}/conf/datanode-env.sh
+    && sed -i 's/-Xss512k/-Xss1m/g' ${IOTDB_HOME}/conf/datanode-env.sh \
+    && printf '\n# Project default: use millisecond timestamps for ETTh1 imports.\ntimestamp_precision=ms\n' >> ${IOTDB_HOME}/conf/iotdb-system.properties
 
 COPY docker/iotdb-entrypoint.sh /usr/local/bin/iotdb-entrypoint.sh
 RUN chmod +x /usr/local/bin/iotdb-entrypoint.sh

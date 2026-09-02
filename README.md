@@ -24,8 +24,8 @@ The repository does not commit large runtime files, raw datasets, Python virtual
 For Ubuntu users, Docker Compose is the recommended way to reproduce the full environment. See [docs/docker_usage.zh-CN.md](docs/docker_usage.zh-CN.md), or run:
 
 ```bash
-docker compose pull iotdb
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 docker compose exec app bash scripts/run_pipeline.sh
 ```
 
@@ -38,7 +38,9 @@ http://localhost:5173/
 The default IoTDB service image is:
 
 ```text
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+iotdb:    crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+app:      crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+frontend: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
 ```
 
 ### 1. Clone the Repository

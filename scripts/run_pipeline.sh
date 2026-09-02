@@ -4,13 +4,19 @@ set -euo pipefail
 IOTDB_HOST="${IOTDB_HOST:-iotdb}"
 IOTDB_PORT="${IOTDB_PORT:-6667}"
 DATASET_PATH="${DATASET_PATH:-data/raw/ETTh1.csv}"
+ETTH1_BUNDLED_PATH="${ETTH1_BUNDLED_PATH:-/opt/datasets/ETTh1.csv}"
 
 mkdir -p data/raw data/processed outputs
 
 if [ ! -f "${DATASET_PATH}" ]; then
-  echo "Downloading ETTh1 dataset..."
-  curl -L --fail -o "${DATASET_PATH}" \
-    https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv
+  if [ -f "${ETTH1_BUNDLED_PATH}" ]; then
+    echo "Copying bundled ETTh1 dataset from ${ETTH1_BUNDLED_PATH}..."
+    cp "${ETTH1_BUNDLED_PATH}" "${DATASET_PATH}"
+  else
+    echo "Downloading ETTh1 dataset..."
+    curl -L --fail -o "${DATASET_PATH}" \
+      https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv
+  fi
 fi
 
 python scripts/wait_for_iotdb.py --host "${IOTDB_HOST}" --port "${IOTDB_PORT}"

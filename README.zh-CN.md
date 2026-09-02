@@ -82,8 +82,8 @@ iotdb-time-series-mining/
 Ubuntu 用户推荐优先使用 Docker Compose：
 
 ```bash
-docker compose pull iotdb
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 docker compose exec app bash scripts/run_pipeline.sh
 ```
 
@@ -95,10 +95,12 @@ http://localhost:5173/
 
 详细说明见：[docs/docker_usage.zh-CN.md](docs/docker_usage.zh-CN.md)。
 
-默认 IoTDB 服务镜像：
+默认服务镜像：
 
 ```text
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+iotdb:    crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+app:      crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+frontend: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
 ```
 
 ### 1. 克隆仓库

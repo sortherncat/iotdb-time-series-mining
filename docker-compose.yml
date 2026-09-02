@@ -14,6 +14,7 @@ services:
       - iotdb_logs:/opt/apache-iotdb-2.0.4-all-bin/logs
 
   app:
+    image: ${APP_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11}
     build:
       context: .
       dockerfile: Dockerfile.app
@@ -31,6 +32,7 @@ services:
     stdin_open: true
 
   frontend:
+    image: ${FRONTEND_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22}
     build:
       context: ./frontend
       dockerfile: Dockerfile

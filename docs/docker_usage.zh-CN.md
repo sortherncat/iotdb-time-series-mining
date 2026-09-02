@@ -35,7 +35,7 @@ docker compose version
 推荐启动方式是在项目根目录先拉取已经推送到阿里云 ACR 的 IoTDB 镜像，再启动服务：
 
 ```bash
-docker compose pull iotdb
+docker compose pull
 docker compose up -d
 ```
 
@@ -57,10 +57,12 @@ iotdb:
 
 当命令带上 `--build` 时，Docker Compose 会强制执行 `Dockerfile.iotdb`，于是会重新从 Docker Hub 拉取 Java 基础镜像，并重新下载 Apache IoTDB 包。这样就不会走已经上传好的阿里云镜像。
 
-默认 IoTDB 镜像地址：
+默认镜像地址：
 
 ```text
-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+iotdb:    crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+app:      crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+frontend: crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
 ```
 
 如果运行环境在阿里云专有网络 VPC 内，可以切换为 VPC 镜像地址：
@@ -119,6 +121,20 @@ docker compose exec app bash scripts/run_pipeline.sh
 8. 执行 K-Means 和 GMM 聚类
 9. 生成前端可视化数据
 ```
+
+`app` 镜像已经内置一份 ETTh1 数据集：
+
+```text
+/opt/datasets/ETTh1.csv
+```
+
+因此运行 `scripts/run_pipeline.sh` 时，会优先从镜像内复制数据到：
+
+```text
+data/raw/ETTh1.csv
+```
+
+只有当镜像内置数据不存在时，脚本才会从 GitHub 下载。这样可以避免每个用户重复慢速下载 ETTh1。
 
 ## 打开前端页面
 
@@ -197,9 +213,32 @@ docker compose down
 docker compose down -v
 ```
 
+构建并推送 Python app 镜像：
+
+```bash
+docker buildx build --provenance=false \
+  -f Dockerfile.app \
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11 \
+  --load .
+
+docker push crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+```
+
+构建并推送 frontend 镜像：
+
+```bash
+docker buildx build --provenance=false \
+  -f frontend/Dockerfile \
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22 \
+  --load frontend
+
+docker push crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+```
+
 ## 注意事项
 
 - `data/raw/`、`data/processed/`、`outputs/` 会通过挂载保存在项目目录中。
+- ETTh1 已预置在 `app` 镜像中，首次运行 pipeline 会复制到 `data/raw/ETTh1.csv`。
 - IoTDB 的内部数据和日志使用 Docker volume 持久化。
 - 如果重新导入数据，建议使用 `--reset-database`，避免旧时间戳数据残留。
 - 如果 `5173` 端口被占用，可以修改 `docker-compose.yml` 中 `frontend` 的端口映射。

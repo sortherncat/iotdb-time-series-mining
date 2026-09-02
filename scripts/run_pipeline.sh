@@ -7,6 +7,7 @@ DATASET_PATH="${DATASET_PATH:-data/raw/ETTh1.csv}"
 ETTH1_BUNDLED_PATH="${ETTH1_BUNDLED_PATH:-/opt/datasets/ETTh1.csv}"
 
 mkdir -p data/raw data/processed outputs
+export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
 
 if [ ! -f "${DATASET_PATH}" ]; then
   if [ -f "${ETTH1_BUNDLED_PATH}" ]; then

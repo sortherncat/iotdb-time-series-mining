@@ -1827,3 +1827,98 @@ GET /data/dashboard_data.json -> returned dashboard metadata
 ```
 
 This completes the first interactive implementation of Task 5.
+
+## 2026-09-02 - Docker Compose Deployment and ACR Image Cache
+
+### Objective
+
+Add a reproducible Docker Compose deployment for Ubuntu users and reduce slow first-time setup caused by Java, IoTDB, Python, Node, PyPI, npm, and dataset downloads.
+
+### Added Files
+
+```text
+docker-compose.yml
+Dockerfile.iotdb
+Dockerfile.app
+frontend/Dockerfile
+docker/iotdb-entrypoint.sh
+scripts/wait_for_iotdb.py
+scripts/run_pipeline.sh
+docs/docker_usage.zh-CN.md
+.dockerignore
+```
+
+### Service Layout
+
+The Compose stack contains three services:
+
+```text
+iotdb: Apache IoTDB 2.0.4 standalone service
+app: Python data pipeline and algorithm runtime
+frontend: React/Vite visualization dashboard
+```
+
+### ACR Image Cache
+
+The main runtime images were built and pushed to Aliyun ACR:
+
+```text
+iotdb:
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+
+app:
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+
+frontend:
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+```
+
+The `iotdb` image contains Apache IoTDB 2.0.4. The `app` image contains Python dependencies and a bundled ETTh1 CSV. The `frontend` image contains Node and npm dependencies.
+
+### Dataset Download Acceleration
+
+The ETTh1 dataset is bundled into the app image at:
+
+```text
+/opt/datasets/ETTh1.csv
+```
+
+`scripts/run_pipeline.sh` now first copies the bundled dataset to `data/raw/ETTh1.csv`. It downloads from GitHub only when the bundled file is unavailable.
+
+### User Workflow
+
+For normal deployment, users should pull existing images instead of rebuilding:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose exec app bash scripts/run_pipeline.sh
+```
+
+Then open:
+
+```text
+http://localhost:5173/
+```
+
+### Build Notes
+
+The documentation now warns users not to use `docker compose up -d --build` for normal startup, because the Compose file retains `build` definitions for reproducibility. Passing `--build` forces Docker to rebuild images and re-download external packages.
+
+When pushing images to Aliyun ACR, Docker BuildKit provenance metadata caused this registry error:
+
+```text
+unknown manifest class for application/vnd.oci.empty.v1+json
+```
+
+The images were rebuilt with:
+
+```bash
+docker buildx build --provenance=false ...
+```
+
+All three remote tags were verified with `docker manifest inspect`.
+
+### Branch
+
+Docker-related changes were kept on the GitHub `docker` branch instead of being pushed to `main`.

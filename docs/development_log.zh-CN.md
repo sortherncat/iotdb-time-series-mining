@@ -314,4 +314,122 @@ http://127.0.0.1:5173/
 - 已完成任务 3：分段特征提取与标准化。
 - 已完成任务 4：聚类与工况识别。
 - 已完成任务 5：交互式可视化展示。
+- 已完成 Docker Compose 容器化部署方案，并将镜像推送到阿里云 ACR。
 - 待完成：实验报告整理与最终结果分析。
+
+## 2026-09-02 - Docker Compose 容器化与 ACR 镜像加速
+
+### 目标
+
+为了解决 Ubuntu 环境中 Java、IoTDB、Python 依赖、Node 依赖安装较慢且容易受网络影响的问题，新增 Docker Compose 部署方案，并将关键镜像推送到阿里云容器镜像服务 ACR。
+
+### 新增文件
+
+```text
+docker-compose.yml
+Dockerfile.iotdb
+Dockerfile.app
+frontend/Dockerfile
+docker/iotdb-entrypoint.sh
+scripts/wait_for_iotdb.py
+scripts/run_pipeline.sh
+docs/docker_usage.zh-CN.md
+.dockerignore
+```
+
+### 服务划分
+
+Docker Compose 中包含三个服务：
+
+```text
+iotdb：Apache IoTDB 2.0.4 单机服务
+app：Python 数据处理与算法运行环境
+frontend：React/Vite 可视化前端
+```
+
+### 镜像加速策略
+
+为了避免普通用户在部署时重复从 Docker Hub、Debian 源、Apache Archive、PyPI、npm registry 下载依赖，将三个镜像推送到阿里云 ACR：
+
+```text
+iotdb:
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+
+app:
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:app-py3.11
+
+frontend:
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:frontend-node22
+```
+
+其中：
+
+- `iotdb` 镜像内置 Apache IoTDB 2.0.4。
+- `app` 镜像内置 Python 依赖和 ETTh1 数据集。
+- `frontend` 镜像内置 Node 环境和 npm 依赖。
+
+### ETTh1 数据集加速
+
+`app` 镜像内置 ETTh1 数据集：
+
+```text
+/opt/datasets/ETTh1.csv
+```
+
+`scripts/run_pipeline.sh` 中增加了优先复制内置数据的逻辑：
+
+```text
+如果 data/raw/ETTh1.csv 不存在：
+  1. 优先从 /opt/datasets/ETTh1.csv 复制
+  2. 如果镜像内置数据不存在，再从 GitHub 下载
+```
+
+这样可以避免每个用户首次运行时都从 GitHub 下载 ETTh1。
+
+### 普通用户启动方式
+
+普通部署不需要 `--build`，推荐使用：
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose exec app bash scripts/run_pipeline.sh
+```
+
+然后访问：
+
+```text
+http://localhost:5173/
+```
+
+### 关于 --build 的说明
+
+文档中特别说明普通用户不要使用：
+
+```bash
+docker compose up -d --build
+```
+
+因为 `docker-compose.yml` 中保留了 `build` 配置，如果使用 `--build`，Docker Compose 会强制重新构建镜像，从而重新拉取基础镜像、安装 apt 包、下载 Python/npm 依赖和 IoTDB 包。
+
+只有修改 Dockerfile 或需要重新制作镜像时，才使用 `--build`。
+
+### ACR 推送处理
+
+推送 IoTDB 镜像时，阿里云 ACR 对 Docker BuildKit 默认生成的 provenance/attestation 元数据不兼容，出现过：
+
+```text
+unknown manifest class for application/vnd.oci.empty.v1+json
+```
+
+最终使用以下方式关闭 provenance 后成功推送：
+
+```bash
+docker buildx build --provenance=false ...
+```
+
+三个镜像均已推送并通过远端 manifest 检查。
+
+### 分支
+
+容器化相关改动未合并到 `main`，而是单独提交到 GitHub 的 `docker` 分支，便于后续通过 Pull Request 审查和合并。

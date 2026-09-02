@@ -1,5 +1,6 @@
 services:
   iotdb:
+    image: ${IOTDB_IMAGE:-crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4}
     build:
       context: .
       dockerfile: Dockerfile.iotdb

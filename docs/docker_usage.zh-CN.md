@@ -38,6 +38,26 @@ docker compose version
 docker compose up -d --build
 ```
 
+如果已经将 IoTDB 镜像推送到阿里云 ACR，普通公网环境可以直接拉取默认镜像：
+
+```bash
+docker compose pull iotdb
+docker compose up -d
+```
+
+默认 IoTDB 镜像地址为：
+
+```text
+crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+```
+
+如果运行环境在阿里云专有网络 VPC 内，可以切换为 VPC 镜像地址：
+
+```bash
+IOTDB_IMAGE=crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 \
+docker compose up -d
+```
+
 这会启动三个服务：
 
 ```text
@@ -79,6 +99,29 @@ http://localhost:5173/
 如果页面已经打开但数据没有更新，可以强制刷新浏览器。
 
 ## 常用命令
+
+构建并推送 IoTDB 镜像到公网 ACR：
+
+```bash
+docker build -f Dockerfile.iotdb \
+  -t crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 .
+
+docker login crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com
+
+docker push crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+```
+
+如果需要在阿里云 VPC 内使用专有网络地址，可以额外打 tag 并推送：
+
+```bash
+docker tag \
+  crpi-um7hjt0z3pn8hy53.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4 \
+  crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+
+docker login crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com
+
+docker push crpi-um7hjt0z3pn8hy53-vpc.cn-shanghai.personal.cr.aliyuncs.com/scattt/scattt1:iotdb-2.0.4
+```
 
 查看服务状态：
 
